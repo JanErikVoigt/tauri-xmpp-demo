@@ -15,4 +15,22 @@ pub enum MyMessage {
     Unfriend(String),
 }
 
-pub fn handle_incoming_message(_message: MyMessage, _state: &mut MutexGuard<MyState>) {}
+pub fn handle_incoming_message(message: MyMessage, state: &mut MutexGuard<MyState>) {
+    match message {
+        MyMessage::Greet(name) => {
+            eprintln!("[demo] Greet from {name}");
+            state.name = name.clone();
+            state.message_history.push(MyMessage::Greet(name));
+        }
+        MyMessage::Befriend(jid) => {
+            eprintln!("[demo] Befriend {jid}");
+            state.friends.insert(jid.clone());
+            state.message_history.push(MyMessage::Befriend(jid));
+        }
+        MyMessage::Unfriend(jid) => {
+            eprintln!("[demo] Unfriend {jid}");
+            state.friends.remove(&jid);
+            state.message_history.push(MyMessage::Unfriend(jid));
+        }
+    }
+}

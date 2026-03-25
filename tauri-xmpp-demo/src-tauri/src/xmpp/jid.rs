@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::TauriXMPPError;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use xmpp::jid::BareJid;
 
@@ -6,8 +6,10 @@ use xmpp::jid::BareJid;
 pub struct Jid(BareJid);
 
 impl Jid {
-    pub fn new(from: &str) -> Result<Self, Error> {
-        Ok(Jid(BareJid::new(&from).map_err(|e| Error::XMPPJidError(e))?))
+    pub fn new(from: &str) -> Result<Self, TauriXMPPError> {
+        Ok(Jid(
+            BareJid::new(&from).map_err(|e| TauriXMPPError::JidError(e))?
+        ))
     }
 
     pub fn bare_jid(&self) -> &BareJid {

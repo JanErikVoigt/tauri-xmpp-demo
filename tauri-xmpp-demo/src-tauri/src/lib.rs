@@ -1,3 +1,5 @@
+mod error;
+mod secrets;
 mod xmpp;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/

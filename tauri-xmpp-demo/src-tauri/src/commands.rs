@@ -1,36 +1,86 @@
-use tauri::State;
+use tauri::{AppHandle, State};
 use xmpp::jid::BareJid;
 
 use crate::{
     appstate::AppState,
-    demo_xmpp::MyMessage,
+    demo_xmpp::{handle_incoming_message, MyMessage, MyState},
     error::TauriXMPPError,
     xmpp::{
         send::SendXMPPMessageRequest,
-        set_jid, set_password,
+        get_jid, set_jid, set_password, spawn_xmpp_thread,
     },
 };
 
+/// Abort any running XMPP task and try to start a fresh one.
+/// Silently ignores "credentials not set" errors — those are expected when only
+/// one of JID / password has been configured so far.
+pub fn restart_xmpp(app: &AppHandle, state: &AppState) {
+    // Abort existing task and clear the outgoing channel.
+    if let Some(handle) = state.xmpp_task.lock().expect("task lock").take() {
+        handle.abort();
+    }
+    *state.messager.lock().expect("messager lock") = None;
+
+    match spawn_xmpp_thread::<AppState, MyMessage, MyState>(app.clone(), handle_incoming_message) {
+        Ok(handle) => {
+            *state.xmpp_task.lock().expect("task lock") = Some(handle);
+            eprintln!("[xmpp] thread (re)started");
+        }
+        Err(e) => {
+            eprintln!("[xmpp] could not start thread (credentials not ready?): {e}");
+        }
+    }
+}
+
+#[tauri::command]
+pub fn cmd_get_my_jid() -> Option<String> {
+    get_jid().ok().map(|jid| jid.bare_jid().as_str().to_string())
+}
+
 #[tauri::command]
 pub fn cmd_get_friends(state: State<'_, AppState>) -> Vec<String> {
-    let mut friends: Vec<String> = state.mystate.lock().expect("state lock").friends.iter().cloned().collect();
+    let mut friends: Vec<String> = state
+        .mystate
+        .lock()
+        .expect("state lock")
+        .friends
+        .iter()
+        .cloned()
+        .collect();
     friends.sort();
     friends
 }
 
 #[tauri::command]
 pub fn cmd_get_history(state: State<'_, AppState>) -> Vec<MyMessage> {
-    state.mystate.lock().expect("state lock").message_history.clone()
+    state
+        .mystate
+        .lock()
+        .expect("state lock")
+        .message_history
+        .clone()
 }
 
 #[tauri::command]
-pub fn cmd_set_jid(jid: String) -> Result<(), TauriXMPPError> {
-    set_jid(&jid)
+pub fn cmd_set_jid(
+    jid: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), TauriXMPPError> {
+    set_jid(&jid)?;
+    restart_xmpp(&app, &state);
+    Ok(())
 }
 
 #[tauri::command]
-pub fn cmd_set_password(password: String) -> Result<(), TauriXMPPError> {
-    set_password(&password)
+pub fn cmd_set_password(
+    password: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), TauriXMPPError> {
+    set_password(&password)?;
+    restart_xmpp(&app, &state);
+    Ok(())
 }
 
 #[tauri::command]

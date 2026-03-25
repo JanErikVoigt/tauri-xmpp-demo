@@ -1,7 +1,6 @@
 use secrecy::ExposeSecret;
 use serde::de::DeserializeOwned;
 use std::sync::MutexGuard;
-use std::{future::Future, task::Poll};
 use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc;
 use xmpp::ClientBuilder;
@@ -17,42 +16,23 @@ use crate::{
     },
 };
 
-pub enum SpawnThreadResult {}
-
-impl Future for SpawnThreadResult {
-    type Output = Result<(), TauriXMPPError>;
-
-    fn poll(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
-        Poll::Pending //TODO???
-    }
-}
-
-// impl<M: 'static, S: 'static> Messager<M, S> {
 /// Establish a persistent XMPP connection and handle all incoming and outgoing
 /// messages for the lifetime of the app.
 ///
-/// `event_handler` receives raw XMPP events and the app handle; all app-specific
-/// logic (message parsing, state mutation, notifications) lives there.
-pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, &mut MutexGuard<S>))
+/// Returns `Err` immediately if JID or password are not set in the keyring.
+pub fn spawn_xmpp_thread<AS, M, S>(
+    app: AppHandle,
+    message_handler: fn(M, &mut MutexGuard<S>),
+) -> Result<tauri::async_runtime::JoinHandle<()>, TauriXMPPError>
 where
     AS: HasMessageSender + Send + Sync + 'static + StateModifiedByXMPP<S>,
     M: DeserializeOwned + Send + 'static,
     S: Send + 'static,
 {
-    let me = get_jid().expect("must have jid");
+    let me = get_jid()?;
+    let password = get_password()?;
 
-    let password = match get_password() {
-        Ok(pw) => pw,
-        Err(e) => {
-            eprintln!("[xmpp] password not found in keyring: {e}");
-            return;
-        }
-    };
-
-    tauri::async_runtime::spawn(async move {
+    Ok(tauri::async_runtime::spawn(async move {
         eprintln!("[xmpp] spawned connection task, building client");
         let mut agent = ClientBuilder::new(me.bare_jid().clone(), password.expose_secret())
             .set_resource("here-now")
@@ -120,7 +100,7 @@ where
                 }
             }
         }
-    });
+    }))
 }
 
 async fn handle_events<A, M, S>(

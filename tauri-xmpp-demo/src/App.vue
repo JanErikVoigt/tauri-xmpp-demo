@@ -2,9 +2,10 @@
 import { ref } from "vue";
 import FriendList from "./views/FriendList.vue";
 import MessageHistory from "./views/MessageHistory.vue";
+import Settings from "./views/Settings.vue";
 import ErrorPopup from "./components/ErrorPopup.vue";
 
-type View = "friends" | "history";
+type View = "friends" | "history" | "settings";
 const view = ref<View>("friends");
 
 const errorMsg = ref<string | null>(null);
@@ -18,11 +19,13 @@ function showError(msg: string) {
     <nav class="tabs">
       <button :class="{ active: view === 'friends' }" @click="view = 'friends'">Friends</button>
       <button :class="{ active: view === 'history' }" @click="view = 'history'">History</button>
+      <button :class="{ active: view === 'settings' }" @click="view = 'settings'">Settings</button>
     </nav>
 
     <main class="view">
       <FriendList v-if="view === 'friends'" @error="showError" />
       <MessageHistory v-if="view === 'history'" @error="showError" />
+      <Settings v-if="view === 'settings'" @error="showError" />
     </main>
 
     <ErrorPopup :message="errorMsg" @close="errorMsg = null" />

@@ -6,22 +6,19 @@ use secrecy::SecretString;
 fn entry(user: &str, service_name: &str) -> Result<keyring_core::Entry, TauriXMPPError> {
     Store::new()
         .map_err(|e| TauriXMPPError::KeyringError(e.to_string()))?
-        .build(KEYRING_SERVICE, user, None)
+        .build(service_name, user, None)
         .map_err(|e| TauriXMPPError::KeyringError(e.to_string()))
 }
 
-pub fn get_entry(user: &str, service_name: &str) -> Result<keyring_core::Entry, TauriXMPPError> {
-    entry("jid")?
+pub fn get_entry(user: &str, service_name: &str) -> Result<SecretString, TauriXMPPError> {
+    entry("jid", service_name)?
         .get_password()
+        .map(|pw| SecretString::new(pw.into()))
         .map_err(|e| TauriXMPPError::KeyringError(e.to_string()))
 }
 
-pub fn set_entry(
-    user: &str,
-    service_name: &str,
-    value: &str,
-) -> Result<keyring_core::Entry, TauriXMPPError> {
-    entry("jid")?
+pub fn set_entry(user: &str, service_name: &str, value: &str) -> Result<(), TauriXMPPError> {
+    entry("jid", service_name)?
         .set_password(value)
         .map_err(|e| TauriXMPPError::KeyringError(e.to_string()))
 }

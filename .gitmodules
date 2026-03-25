@@ -1,3 +1,0 @@
-[submodule "submodules/tauri-xmpp"]
-	path = submodules/tauri-xmpp
-	url = git@github.com:JanErikVoigt/tauri-xmpp.git

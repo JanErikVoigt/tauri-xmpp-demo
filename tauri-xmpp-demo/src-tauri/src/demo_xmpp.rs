@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::MutexGuard};
 
 #[derive(Debug, Default)]
 pub struct MyState {
@@ -14,6 +14,6 @@ pub enum MyMessage {
     Unfriend(String),
 }
 
-pub fn handle_incoming_message(message: MyMessage, state: MyState) -> MyState {
-    return state;
+pub fn handle_incoming_message(message: MyMessage, state: MutexGuard<MyState>) {
+    // return state;
 }

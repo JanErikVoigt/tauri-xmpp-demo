@@ -1,6 +1,7 @@
 use secrecy::ExposeSecret;
 use serde::Deserialize;
 use std::marker::PhantomData;
+use std::sync::MutexGuard;
 use std::{future::Future, task::Poll};
 use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc;
@@ -36,7 +37,7 @@ impl Future for SpawnThreadResult {
 ///
 /// `event_handler` receives raw XMPP events and the app handle; all app-specific
 /// logic (message parsing, state mutation, notifications) lives there.
-pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, S) -> S)
+pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, MutexGuard<S>))
 where
     AS: HasMessageSender + Send + Sync + 'static,
 {
@@ -121,20 +122,23 @@ where
     });
 }
 
-async fn handle_events<A, M, S>(events: Vec<Event>, app: AppHandle, message_handler: fn(M, S) -> S)
-where
-    M: Deserialize,
+async fn handle_events<'de, A, M: Deserialize<'de> + Clone, S>(
+    events: Vec<Event>,
+    app: AppHandle,
+    message_handler: fn(M, &mut MutexGuard<S>),
+) where
+    M: Deserialize<'de>,
     A: Send + Sync + 'static + StateModifiedByXMPP<S>,
 {
     let state = app.state::<A>();
-    let mystate = state.xmpp_state();
+    let mystate: MutexGuard<S> = state.xmpp_state();
 
     for event in events {
         if let Event::ChatMessage(_id, from, body, time) = event {
             let is_delayed = !time.delays.is_empty();
-            if let Ok(msgs) = serde_json::from_str::<M>(&body) {
+            if let Ok(msg) = serde_json::from_str::<M>(&body) {
                 let from_jid = from.to_string();
-                state = message_handler(msgs, state);
+                message_handler(msg.clone(), &mut mystate);
             }
         }
     }

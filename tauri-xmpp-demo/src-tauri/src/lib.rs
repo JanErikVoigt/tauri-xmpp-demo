@@ -3,7 +3,6 @@ use std::sync::Mutex;
 use crate::{
     appstate::AppState,
     demo_xmpp::{handle_incoming_events, MyMessage, MyState},
-    xmpp::Messager,
 };
 
 pub use tauri::Manager;

@@ -1,14 +1,14 @@
 use crate::{
     demo_xmpp::{MyMessage, MyState},
-    xmpp::{HasMessager, Messager},
+    xmpp::{HasMessageSender, MessageSender},
 };
 pub use std::sync::Mutex;
 
 pub struct AppState {
     pub mystate: Mutex<MyState>,
-    pub messager: Mutex<Option<Messager<MyMessage, MyState>>>,
+    pub messager: Mutex<Option<MessageSender>>,
 }
 
-impl HasMessager for AppState {
-    fn set_tx(&self, tx: MyTx) {}
+impl HasMessageSender for AppState {
+    fn set_tx(&self, tx: MessageSender) {}
 }

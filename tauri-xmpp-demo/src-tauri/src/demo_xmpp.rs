@@ -6,9 +6,6 @@ pub struct MyState {
     pub message_history: Vec<MyMessage>,
     pub friends: HashSet<String>,
 }
-// impl MyState {
-//     pub
-// }
 
 #[derive(Debug)]
 pub enum MyMessage {

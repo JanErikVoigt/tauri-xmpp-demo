@@ -4633,6 +4633,7 @@ dependencies = [
  "android-native-keyring-store",
  "keyring",
  "keyring-core",
+ "rustls",
  "secrecy",
  "serde",
  "serde_json",

@@ -1,6 +1,5 @@
 use secrecy::ExposeSecret;
-use serde::Deserialize;
-use std::marker::PhantomData;
+use serde::de::DeserializeOwned;
 use std::sync::MutexGuard;
 use std::{future::Future, task::Poll};
 use tauri::{AppHandle, Manager};
@@ -14,7 +13,7 @@ use crate::{
     xmpp::{
         secrets::{get_jid, get_password},
         send::SendXMPPMessageRequest,
-        HasMessageSender, Jid,
+        HasMessageSender,
     },
 };
 
@@ -37,9 +36,11 @@ impl Future for SpawnThreadResult {
 ///
 /// `event_handler` receives raw XMPP events and the app handle; all app-specific
 /// logic (message parsing, state mutation, notifications) lives there.
-pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, MutexGuard<S>))
+pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, &mut MutexGuard<S>))
 where
-    AS: HasMessageSender + Send + Sync + 'static,
+    AS: HasMessageSender + Send + Sync + 'static + StateModifiedByXMPP<S>,
+    M: DeserializeOwned + Send + 'static,
+    S: Send + 'static,
 {
     let me = get_jid().expect("must have jid");
 
@@ -95,14 +96,14 @@ where
 
         // Process any events that arrived in the same batch as Online.
         if !post_online_events.is_empty() {
-            handle_events(post_online_events, app.clone(), message_handler).await;
+            handle_events::<AS, M, S>(post_online_events, app.clone(), message_handler).await;
         }
 
         // Main loop: interleave incoming events and outgoing sends.
         loop {
             tokio::select! {
                 events = agent.wait_for_events() => {
-                    handle_events(events, app.clone(),message_handler).await;
+                    handle_events::<AS, M, S>(events, app.clone(), message_handler).await;
                 }
 
                 msg = rx.recv() => {
@@ -122,23 +123,21 @@ where
     });
 }
 
-async fn handle_events<'de, A, M: Deserialize<'de> + Clone, S>(
+async fn handle_events<A, M, S>(
     events: Vec<Event>,
     app: AppHandle,
     message_handler: fn(M, &mut MutexGuard<S>),
 ) where
-    M: Deserialize<'de>,
+    M: DeserializeOwned,
     A: Send + Sync + 'static + StateModifiedByXMPP<S>,
 {
     let state = app.state::<A>();
-    let mystate: MutexGuard<S> = state.xmpp_state();
+    let mut mystate: MutexGuard<S> = state.xmpp_state();
 
     for event in events {
-        if let Event::ChatMessage(_id, from, body, time) = event {
-            let is_delayed = !time.delays.is_empty();
+        if let Event::ChatMessage(_id, _from, body, _time) = event {
             if let Ok(msg) = serde_json::from_str::<M>(&body) {
-                let from_jid = from.to_string();
-                message_handler(msg.clone(), &mut mystate);
+                message_handler(msg, &mut mystate);
             }
         }
     }

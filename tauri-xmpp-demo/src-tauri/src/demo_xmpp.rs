@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use std::{collections::HashSet, sync::MutexGuard};
 
 #[derive(Debug, Default)]
@@ -7,13 +8,11 @@ pub struct MyState {
     pub friends: HashSet<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub enum MyMessage {
     Greet(String),
     Befriend(String),
     Unfriend(String),
 }
 
-pub fn handle_incoming_message(message: MyMessage, state: MutexGuard<MyState>) {
-    // return state;
-}
+pub fn handle_incoming_message(_message: MyMessage, _state: &mut MutexGuard<MyState>) {}

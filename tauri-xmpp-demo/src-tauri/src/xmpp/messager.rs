@@ -1,4 +1,5 @@
 use secrecy::ExposeSecret;
+use serde::Deserialize;
 use std::marker::PhantomData;
 use std::{future::Future, task::Poll};
 use tauri::{AppHandle, Manager};
@@ -6,6 +7,7 @@ use tokio::sync::mpsc;
 use xmpp::ClientBuilder;
 pub use xmpp::{message::send::MessageSettings, Event};
 
+use crate::xmpp::StateModifiedByXMPP;
 use crate::{
     error::TauriXMPPError,
     xmpp::{
@@ -34,10 +36,8 @@ impl Future for SpawnThreadResult {
 ///
 /// `event_handler` receives raw XMPP events and the app handle; all app-specific
 /// logic (message parsing, state mutation, notifications) lives there.
-pub fn spawn_xmpp_thread<AS>(
-    app: AppHandle,
-    event_handler: fn(Vec<Event>, AppHandle) -> SpawnThreadResult,
-) where
+pub fn spawn_xmpp_thread<AS, M, S>(app: AppHandle, message_handler: fn(M, S) -> S)
+where
     AS: HasMessageSender + Send + Sync + 'static,
 {
     let me = get_jid().expect("must have jid");
@@ -88,20 +88,20 @@ pub fn spawn_xmpp_thread<AS>(
         }
 
         // Register the outgoing sender in AppState.
-        let (tx, mut rx) = mpsc::channel::<SendXMPPMessageRequest>(32);
+        let (tx, mut rx) = mpsc::channel::<SendXMPPMessageRequest>(100);
         eprintln!("[xmpp] registering tx in AppState");
         app.state::<AS>().set_tx(tx);
 
         // Process any events that arrived in the same batch as Online.
         if !post_online_events.is_empty() {
-            event_handler(post_online_events, app.clone()).await;
+            handle_events(post_online_events, app.clone()).await;
         }
 
         // Main loop: interleave incoming events and outgoing sends.
         loop {
             tokio::select! {
                 events = agent.wait_for_events() => {
-                    event_handler(events, app.clone()).await;
+                    handle_events(events, app.clone()).await;
                 }
 
                 msg = rx.recv() => {
@@ -119,4 +119,23 @@ pub fn spawn_xmpp_thread<AS>(
             }
         }
     });
+}
+
+async fn handle_events<A, M, S>(events: Vec<Event>, app: AppHandle, message_handler: fn(M, S) -> S)
+where
+    M: Deserialize,
+    A: Send + Sync + 'static + StateModifiedByXMPP<S>,
+{
+    let state = app.state::<A>();
+    let mystate = state.xmpp_state();
+
+    for event in events {
+        if let Event::ChatMessage(_id, from, body, time) = event {
+            let is_delayed = !time.delays.is_empty();
+            if let Ok(msgs) = serde_json::from_str::<M>(&body) {
+                let from_jid = from.to_string();
+                state = message_handler(msgs, state);
+            }
+        }
+    }
 }

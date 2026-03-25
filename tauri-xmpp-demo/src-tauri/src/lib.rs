@@ -2,7 +2,8 @@ use std::sync::Mutex;
 
 use crate::{
     appstate::AppState,
-    demo_xmpp::{handle_incoming_events, MyMessage, MyState},
+    demo_xmpp::{handle_incoming_message, MyMessage, MyState},
+    xmpp::spawn_xmpp_thread,
 };
 
 pub use tauri::Manager;
@@ -30,9 +31,9 @@ pub fn run() {
                 mystate: Mutex::new(MyState::default()),
                 messager: Mutex::new(None),
             });
-            let _ = Messager::<MyMessage, MyState>::spawn_xmpp_thread::<AppState>(
+            let _ = spawn_xmpp_thread::<AppState, MyMessage, MyState>(
                 app.handle().clone(),
-                handle_incoming_events,
+                handle_incoming_message,
             );
             Ok(())
         })

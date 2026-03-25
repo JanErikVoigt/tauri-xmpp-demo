@@ -1,8 +1,9 @@
 use crate::{
     demo_xmpp::{MyMessage, MyState},
-    xmpp::{HasMessageSender, MessageSender},
+    xmpp::{HasMessageSender, MessageSender, StateModifiedByXMPP},
 };
 pub use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 pub struct AppState {
     pub mystate: Mutex<MyState>,
@@ -11,4 +12,10 @@ pub struct AppState {
 
 impl HasMessageSender for AppState {
     fn set_tx(&self, tx: MessageSender) {}
+}
+
+impl StateModifiedByXMPP<MyState> for AppState {
+    fn xmpp_state(&self) -> MutexGuard<MyState> {
+        self.mystate.lock().expect("failed locking state")
+    }
 }

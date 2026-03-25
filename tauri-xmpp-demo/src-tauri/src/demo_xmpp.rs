@@ -17,4 +17,6 @@ pub enum MyMessage {
     Unfriend(String),
 }
 
-pub fn handle_incoming_events() {}
+pub fn handle_incoming_message(message: MyMessage, state: MyState) -> MyState {
+    return state;
+}

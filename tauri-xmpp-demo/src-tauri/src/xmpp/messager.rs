@@ -45,15 +45,7 @@ impl<M: 'static, S: 'static> Messager<M, S> {
     ) where
         AS: HasMessager<M, S> + Send + Sync + 'static,
     {
-        let jid = get_jid()?;
-
-        let me = match Jid::new(&jid) {
-            Ok(j) => j,
-            Err(e) => {
-                eprintln!("[xmpp] invalid JID: {e}");
-                return;
-            }
-        };
+        let me = get_jid()?;
 
         let password = match get_password() {
             Ok(pw) => pw,

@@ -94,14 +94,14 @@ where
 
         // Process any events that arrived in the same batch as Online.
         if !post_online_events.is_empty() {
-            handle_events(post_online_events, app.clone()).await;
+            handle_events(post_online_events, app.clone(), message_handler).await;
         }
 
         // Main loop: interleave incoming events and outgoing sends.
         loop {
             tokio::select! {
                 events = agent.wait_for_events() => {
-                    handle_events(events, app.clone()).await;
+                    handle_events(events, app.clone(),message_handler).await;
                 }
 
                 msg = rx.recv() => {

@@ -1,3 +1,15 @@
+use std::sync::Mutex;
+
+use crate::{
+    appstate::AppState,
+    demo_xmpp::{handle_incoming_events, MyMessage, MyState},
+    xmpp::Messager,
+};
+
+pub use tauri::Manager;
+
+mod appstate;
+mod demo_xmpp;
 mod error;
 mod secrets;
 mod xmpp;
@@ -12,7 +24,19 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        //TODO .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![greet])
+        .setup(|app| {
+            app.manage(AppState {
+                mystate: Mutex::new(MyState::default()),
+                messager: Mutex::new(None),
+            });
+            let _ = Messager::<MyMessage, MyState>::spawn_xmpp_thread::<AppState>(
+                app.handle().clone(),
+                handle_incoming_events,
+            );
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

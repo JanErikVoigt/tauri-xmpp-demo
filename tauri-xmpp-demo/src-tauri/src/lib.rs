@@ -9,6 +9,7 @@ use crate::{
 pub use tauri::Manager;
 
 mod appstate;
+mod commands;
 mod demo_xmpp;
 mod error;
 mod secrets;
@@ -25,7 +26,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         //TODO .plugin(tauri_plugin_notification::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            commands::cmd_set_jid,
+            commands::cmd_set_password,
+            commands::cmd_send_greet,
+            commands::cmd_befriend,
+            commands::cmd_unfriend,
+            commands::cmd_get_friends,
+            commands::cmd_get_history,
+        ])
         .setup(|app| {
             app.manage(AppState {
                 mystate: Mutex::new(MyState::default()),

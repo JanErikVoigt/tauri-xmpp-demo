@@ -7,7 +7,8 @@ pub use messager::spawn_xmpp_thread;
 
 pub use crate::xmpp::send::MessageSender;
 mod secrets;
-mod send;
+pub use secrets::{set_jid, set_password};
+pub mod send;
 
 /// Implemented by the Tauri app state to allow the XMPP layer to register its outgoing channel.
 pub trait HasMessageSender: Send + Sync + 'static {

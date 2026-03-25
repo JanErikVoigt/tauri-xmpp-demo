@@ -8,7 +8,7 @@ pub struct MyState {
     pub friends: HashSet<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub enum MyMessage {
     Greet(String),
     Befriend(String),

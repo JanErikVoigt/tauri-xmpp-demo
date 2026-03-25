@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">tauri-xmpp-demo</string>
+    <string name="main_activity_title">tauri-xmpp-demo</string>
+</resources>

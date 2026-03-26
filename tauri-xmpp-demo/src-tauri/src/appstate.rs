@@ -13,12 +13,12 @@ pub struct AppState {
 
 impl HasMessageSender for AppState {
     fn set_tx(&self, tx: MessageSender) {
-        *self.messager.lock().expect("messager lock") = Some(tx);
+        *self.messager.lock().unwrap_or_else(|e| e.into_inner()) = Some(tx);
     }
 }
 
 impl StateModifiedByXMPP<MyState> for AppState {
     fn xmpp_state(&self) -> MutexGuard<'_, MyState> {
-        self.mystate.lock().expect("failed locking state")
+        self.mystate.lock().unwrap_or_else(|e| e.into_inner())
     }
 }

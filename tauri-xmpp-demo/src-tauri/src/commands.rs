@@ -16,14 +16,14 @@ use crate::{
 /// one of JID / password has been configured so far.
 pub fn restart_xmpp(app: &AppHandle, state: &AppState) {
     // Abort existing task and clear the outgoing channel.
-    if let Some(handle) = state.xmpp_task.lock().expect("task lock").take() {
+    if let Some(handle) = state.xmpp_task.lock().unwrap_or_else(|e| e.into_inner()).take() {
         handle.abort();
     }
-    *state.messager.lock().expect("messager lock") = None;
+    *state.messager.lock().unwrap_or_else(|e| e.into_inner()) = None;
 
     match spawn_xmpp_thread::<AppState, MyMessage, MyState>(app.clone(), handle_incoming_message) {
         Ok(handle) => {
-            *state.xmpp_task.lock().expect("task lock") = Some(handle);
+            *state.xmpp_task.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
             eprintln!("[xmpp] thread (re)started");
         }
         Err(e) => {
@@ -42,7 +42,7 @@ pub fn cmd_get_friends(state: State<'_, AppState>) -> Vec<String> {
     let mut friends: Vec<String> = state
         .mystate
         .lock()
-        .expect("state lock")
+        .unwrap_or_else(|e| e.into_inner())
         .friends
         .iter()
         .cloned()
@@ -56,7 +56,7 @@ pub fn cmd_get_history(state: State<'_, AppState>) -> Vec<MyMessage> {
     state
         .mystate
         .lock()
-        .expect("state lock")
+        .unwrap_or_else(|e| e.into_inner())
         .message_history
         .clone()
 }
@@ -118,7 +118,7 @@ async fn send_message(
     let tx = state
         .messager
         .lock()
-        .expect("messager lock")
+        .unwrap_or_else(|e| e.into_inner())
         .clone()
         .ok_or(TauriXMPPError::NotConnected)?;
     tx.send(SendXMPPMessageRequest::SendMessages {

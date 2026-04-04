@@ -1,19 +1,26 @@
+use tauri::App;
+
 use crate::{
-    demo_xmpp::MyState,
-    xmpp::{HasMessageSender, MessageSender, StateModifiedByXMPP},
+    demo_xmpp::{MyMessage, MyState},
+    xmpp::{send::XMPPMessager, HasMessageSender, MessageTx, StateModifiedByXMPP},
 };
 pub use std::sync::Mutex;
 use std::sync::MutexGuard;
 
 pub struct AppState {
     pub mystate: Mutex<MyState>,
-    pub messager: Mutex<Option<MessageSender>>,
-    pub xmpp_task: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    pub messager: Mutex<Option<XMPPMessager<AppState, MyMessage, MyState>>>,
 }
 
-impl HasMessageSender for AppState {
-    fn set_tx(&self, tx: MessageSender) {
-        *self.messager.lock().unwrap_or_else(|e| e.into_inner()) = Some(tx);
+impl HasMessageSender<AppState, MyMessage, MyState> for AppState {
+    fn set_tx(&self, tx: MessageTx) {
+        self.messager
+            .lock()
+            .as_mut()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .set_tx(tx);
     }
 }
 

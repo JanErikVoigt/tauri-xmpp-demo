@@ -1,10 +1,6 @@
 use std::sync::Mutex;
 
-use crate::{
-    appstate::AppState,
-    commands::restart_xmpp,
-    demo_xmpp::MyState,
-};
+use crate::{appstate::AppState, demo_xmpp::MyState};
 
 pub use tauri::Manager;
 
@@ -41,7 +37,6 @@ pub fn run() {
             app.manage(AppState {
                 mystate: Mutex::new(MyState::default()),
                 messager: Mutex::new(None),
-                xmpp_task: Mutex::new(None),
             });
             // Try to start immediately; silently skips if credentials aren't set yet.
             restart_xmpp(app.handle(), &app.state::<AppState>());

@@ -25,7 +25,7 @@ pub fn spawn_xmpp_thread<AS, M, S>(
     message_handler: fn(M, &mut MutexGuard<S>),
 ) -> Result<tauri::async_runtime::JoinHandle<()>, TauriXMPPError>
 where
-    AS: HasMessageSender + Send + Sync + 'static + StateModifiedByXMPP<S>,
+    AS: HasMessageSender<AS, M, S> + Send + Sync + 'static + StateModifiedByXMPP<S>,
     M: DeserializeOwned + Send + 'static,
     S: Send + 'static,
 {

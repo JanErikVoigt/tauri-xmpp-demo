@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use std::{collections::HashSet, sync::MutexGuard};
 
+use crate::xmpp::Jid;
+
 #[derive(Debug, Default)]
 pub struct MyState {
     pub name: String,
@@ -11,8 +13,8 @@ pub struct MyState {
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub enum MyMessage {
     Greet(String),
-    Befriend(String),
-    Unfriend(String),
+    Befriend(Jid),
+    Unfriend(Jid),
 }
 
 pub fn handle_incoming_message(message: MyMessage, state: &mut MutexGuard<MyState>) {

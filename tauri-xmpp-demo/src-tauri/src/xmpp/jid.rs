@@ -17,6 +17,12 @@ impl Jid {
     }
 }
 
+impl ToString for Jid {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
 impl Serialize for Jid {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

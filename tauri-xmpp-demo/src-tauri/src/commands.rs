@@ -50,9 +50,12 @@ pub fn cmd_set_jid(
     state: State<'_, AppState>,
 ) -> Result<(), TauriXMPPError> {
     set_jid(&jid)?;
-    let state = state.lock();
+    let mut messager = state.messager.lock().map_err(|e| TauriXMPPError::NoState)?;
 
-    XMPPMessager::restart_xmpp(&app, &state);
+    match messager.as_mut() {
+        Some(m) => m.restart_xmpp(&app, &state),
+        None => {}
+    };
     Ok(())
 }
 
@@ -63,7 +66,13 @@ pub fn cmd_set_password(
     state: State<'_, AppState>,
 ) -> Result<(), TauriXMPPError> {
     set_password(&password)?;
-    restart_xmpp(&app, &state);
+
+    let mut messager = state.messager.lock().map_err(|e| TauriXMPPError::NoState)?;
+    match messager.as_mut() {
+        Some(m) => m.restart_xmpp(&app, &state),
+        None => {}
+    };
+
     Ok(())
 }
 

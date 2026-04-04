@@ -14,6 +14,9 @@ pub enum TauriXMPPError {
 
     #[error("XMPP send channel closed")]
     ChannelClosed,
+
+    #[error("no idea what this does")]
+    NoState,
 }
 
 impl serde::Serialize for TauriXMPPError {

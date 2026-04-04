@@ -25,13 +25,13 @@ pub fn handle_incoming_message(message: MyMessage, state: &mut MutexGuard<MyStat
             state.message_history.push(MyMessage::Greet(name));
         }
         MyMessage::Befriend(jid) => {
-            eprintln!("[demo] Befriend {jid}");
-            state.friends.insert(jid.clone());
+            eprintln!("[demo] Befriend {jid:?}");
+            state.friends.insert(jid.to_string());
             state.message_history.push(MyMessage::Befriend(jid));
         }
         MyMessage::Unfriend(jid) => {
-            eprintln!("[demo] Unfriend {jid}");
-            state.friends.remove(&jid);
+            eprintln!("[demo] Unfriend {jid:?}");
+            state.friends.remove(&jid.to_string());
             state.message_history.push(MyMessage::Unfriend(jid));
         }
     }

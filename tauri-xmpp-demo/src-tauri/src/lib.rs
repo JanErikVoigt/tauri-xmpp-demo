@@ -1,6 +1,10 @@
 use std::sync::Mutex;
 
-use crate::{appstate::AppState, demo_xmpp::MyState};
+use crate::{
+    appstate::AppState,
+    demo_xmpp::{handle_incoming_message, MyState},
+    xmpp::{send::XMPPMessager, spawn_xmpp_thread},
+};
 
 pub use tauri::Manager;
 
@@ -18,7 +22,7 @@ fn greet(name: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         //TODO .plugin(tauri_plugin_notification::init())
@@ -34,9 +38,15 @@ pub fn run() {
             commands::cmd_get_my_jid,
         ])
         .setup(|app| {
+            //TODO fail silently?
+            let messager = match spawn_xmpp_thread(app.handle().clone(), handle_incoming_message) {
+                Ok(m) => Some(m),
+                Err(e) => None,
+            };
+
             app.manage(AppState {
                 mystate: Mutex::new(MyState::default()),
-                messager: Mutex::new(None),
+                messager: Mutex::new(messager),
             });
             // Try to start immediately; silently skips if credentials aren't set yet.
             restart_xmpp(app.handle(), &app.state::<AppState>());

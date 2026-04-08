@@ -1,6 +1,16 @@
 pub mod error;
 pub use error::XmppError;
 
+/// Tauri event names emitted by the XMPP layer to the frontend.
+pub mod events {
+    /// One or more new messages were received and stored. No payload.
+    pub const MESSAGE: &str = "xmpp:message";
+    /// The XMPP connection came online. No payload.
+    pub const ONLINE: &str = "xmpp:online";
+    /// The XMPP connection went offline. Payload: error reason (`String`), empty if clean.
+    pub const OFFLINE: &str = "xmpp:offline";
+}
+
 mod jid;
 pub use jid::Jid;
 

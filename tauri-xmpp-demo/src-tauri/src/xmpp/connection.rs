@@ -2,12 +2,13 @@ use std::{marker::PhantomData, sync::MutexGuard};
 
 use secrecy::ExposeSecret;
 use serde::{de::DeserializeOwned, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 use xmpp::{delay::StanzaTimeInfo, message::send::MessageSettings, ClientBuilder, Event};
 
 use crate::xmpp::{
     error::XmppError,
+    events,
     secrets::{get_jid, get_password},
     HasXmppSender, Jid, MessageTx, OutgoingMessage, XmppStateAccess,
 };
@@ -132,10 +133,13 @@ async fn run_xmpp_task<A, M, S>(
             }
             Err(_) => {
                 eprintln!("[xmpp] timeout waiting for Online");
+                app.emit(events::OFFLINE, "Connection timed out").ok();
                 return;
             }
         }
     }
+
+    app.emit(events::ONLINE, ()).ok();
 
     // Register the outgoing channel in AppState.
     let (tx, mut rx) = mpsc::channel::<OutgoingMessage>(100);
@@ -143,14 +147,23 @@ async fn run_xmpp_task<A, M, S>(
 
     // Process all events collected during the online handshake (offline message backlog).
     if !queued.is_empty() {
-        process_events::<A, M, S>(&queued, &app, message_handler);
+        if let Some(reason) = disconnected_reason(&queued) {
+            app.emit(events::OFFLINE, reason).ok();
+            return;
+        }
+        process_messages::<A, M, S>(&queued, &app, message_handler);
     }
 
     // Main loop: interleave incoming events with outgoing sends.
     loop {
         tokio::select! {
             events = agent.wait_for_events() => {
-                process_events::<A, M, S>(&events, &app, message_handler);
+                if let Some(reason) = disconnected_reason(&events) {
+                    eprintln!("[xmpp] disconnected: {reason}");
+                    app.emit(events::OFFLINE, reason).ok();
+                    return;
+                }
+                process_messages::<A, M, S>(&events, &app, message_handler);
             }
             msg = rx.recv() => {
                 match msg {
@@ -159,11 +172,22 @@ async fn run_xmpp_task<A, M, S>(
                             agent.send_message(MessageSettings::new(jid.clone(), &body)).await;
                         }
                     }
-                    None => break, // channel closed — shut down
+                    None => return, // channel closed — deliberate restart, no event
                 }
             }
         }
     }
+}
+
+/// Returns the disconnect reason string if any event in the batch is a `Disconnected`.
+fn disconnected_reason(events: &[Event]) -> Option<String> {
+    events.iter().find_map(|e| {
+        if let Event::Disconnected(err) = e {
+            Some(err.to_string())
+        } else {
+            None
+        }
+    })
 }
 
 /// Extract the Unix timestamp (seconds) that best represents when a message was sent.
@@ -179,7 +203,9 @@ fn sent_timestamp(time_info: &StanzaTimeInfo) -> i64 {
         .unwrap_or_else(|| time_info.received.timestamp())
 }
 
-fn process_events<A, M, S>(
+/// Process `ChatMessage` events from a batch, mutate state, then emit `xmpp:message`
+/// once if any messages were handled. The state lock is released before emitting.
+fn process_messages<A, M, S>(
     events: &[Event],
     app: &AppHandle,
     message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
@@ -187,13 +213,21 @@ fn process_events<A, M, S>(
     A: XmppStateAccess<S> + Send + Sync + 'static,
     M: DeserializeOwned,
 {
-    let state = app.state::<A>();
-    let mut s = state.xmpp_state();
-    for event in events {
-        if let Event::ChatMessage(_id, _from, body, time_info) = event {
-            if let Ok(msg) = serde_json::from_str::<M>(body) {
-                message_handler(msg, &mut s, sent_timestamp(time_info));
+    let mut received = 0usize;
+    {
+        let state = app.state::<A>();
+        let mut s = state.xmpp_state();
+        for event in events {
+            if let Event::ChatMessage(_id, _from, body, time_info) = event {
+                if let Ok(msg) = serde_json::from_str::<M>(body) {
+                    message_handler(msg, &mut s, sent_timestamp(time_info));
+                    received += 1;
+                }
             }
         }
+    } // MutexGuard dropped here before emitting
+
+    if received > 0 {
+        app.emit(events::MESSAGE, ()).ok();
     }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 const emit = defineEmits<{ error: [msg: string] }>();
 
@@ -20,6 +21,8 @@ const name = ref("");
 const sending = ref(false);
 const greetings = ref<ReceivedGreeting[]>([]);
 
+let unlistenMessage: UnlistenFn | null = null;
+
 function formatTime(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString();
 }
@@ -27,7 +30,6 @@ function formatTime(unixSeconds: number): string {
 async function loadContacts() {
   try {
     contacts.value = await invoke<Contact[]>("cmd_get_contacts");
-    // Reset selection if current target no longer exists
     if (to.value && !contacts.value.some((c) => c.jid === to.value)) {
       to.value = "";
     }
@@ -60,6 +62,13 @@ async function send() {
 onMounted(async () => {
   await loadContacts();
   await loadGreetings();
+  unlistenMessage = await listen<void>("xmpp:message", () => {
+    loadGreetings();
+  });
+});
+
+onUnmounted(() => {
+  unlistenMessage?.();
 });
 </script>
 

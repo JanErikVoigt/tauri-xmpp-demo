@@ -4,7 +4,7 @@ use secrecy::ExposeSecret;
 use serde::{de::DeserializeOwned, Serialize};
 use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc;
-use xmpp::{message::send::MessageSettings, ClientBuilder, Event};
+use xmpp::{delay::StanzaTimeInfo, message::send::MessageSettings, ClientBuilder, Event};
 
 use crate::xmpp::{
     error::XmppError,
@@ -13,7 +13,7 @@ use crate::xmpp::{
 };
 
 pub struct XMPPMessager<A, M, S> {
-    message_handler: fn(M, &mut MutexGuard<'_, S>),
+    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
     tx: Option<mpsc::Sender<OutgoingMessage>>,
     join_handle: Option<tauri::async_runtime::JoinHandle<()>>,
     _phantom: PhantomData<(A, S)>,
@@ -25,7 +25,7 @@ where
     M: DeserializeOwned + Send + 'static,
     S: Send + 'static,
 {
-    pub fn new(message_handler: fn(M, &mut MutexGuard<'_, S>)) -> Self {
+    pub fn new(message_handler: fn(M, &mut MutexGuard<'_, S>, i64)) -> Self {
         Self {
             message_handler,
             tx: None,
@@ -92,7 +92,7 @@ async fn run_xmpp_task<A, M, S>(
     app: AppHandle,
     me: Jid,
     password: secrecy::SecretString,
-    message_handler: fn(M, &mut MutexGuard<'_, S>),
+    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
 ) where
     A: HasXmppSender + XmppStateAccess<S> + Send + Sync + 'static,
     M: DeserializeOwned + Send + 'static,
@@ -164,10 +164,23 @@ async fn run_xmpp_task<A, M, S>(
     }
 }
 
+/// Extract the Unix timestamp (seconds) that best represents when a message was sent.
+///
+/// Uses the first XEP-0203 delay stamp if present — this is the original sent time
+/// stamped by the server when storing messages for offline delivery. Falls back to
+/// the library's own receive time if no delay info is available.
+fn sent_timestamp(time_info: &StanzaTimeInfo) -> i64 {
+    time_info
+        .delays
+        .first()
+        .map(|d| d.stamp.0.timestamp())
+        .unwrap_or_else(|| time_info.received.timestamp())
+}
+
 fn process_events<A, M, S>(
     events: &[Event],
     app: &AppHandle,
-    message_handler: fn(M, &mut MutexGuard<'_, S>),
+    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
 ) where
     A: XmppStateAccess<S> + Send + Sync + 'static,
     M: DeserializeOwned,
@@ -175,9 +188,9 @@ fn process_events<A, M, S>(
     let state = app.state::<A>();
     let mut s = state.xmpp_state();
     for event in events {
-        if let Event::ChatMessage(_id, _from, body, _time) = event {
+        if let Event::ChatMessage(_id, _from, body, time_info) = event {
             if let Ok(msg) = serde_json::from_str::<M>(body) {
-                message_handler(msg, &mut s);
+                message_handler(msg, &mut s, sent_timestamp(time_info));
             }
         }
     }

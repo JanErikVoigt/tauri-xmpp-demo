@@ -4631,6 +4631,7 @@ name = "tauri-xmpp-demo"
 version = "0.1.0"
 dependencies = [
  "android-native-keyring-store",
+ "chrono",
  "keyring",
  "keyring-core",
  "rustls",

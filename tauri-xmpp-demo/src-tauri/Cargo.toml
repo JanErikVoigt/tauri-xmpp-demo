@@ -24,6 +24,7 @@ tauri-plugin-opener = "2"
 xmpp = { git = "https://github.com/JanErikVoigt/xmpp-rs.git", branch = "claudes-fixes", features = ["webpki-roots"] }
 
 thiserror = "2.0.18"
+chrono = "0.4"
 
 # (De)Serialization
 tokio = { version = "1", features = ["time", "sync"] }

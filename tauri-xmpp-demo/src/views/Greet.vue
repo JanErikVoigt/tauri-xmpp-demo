@@ -4,10 +4,19 @@ import { invoke } from "@tauri-apps/api/core";
 
 const emit = defineEmits<{ error: [msg: string] }>();
 
+interface ReceivedGreeting {
+  name: string;
+  sent_at: number; // Unix seconds
+}
+
 const to = ref("");
 const name = ref("");
 const sending = ref(false);
-const greetings = ref<string[]>([]);
+const greetings = ref<ReceivedGreeting[]>([]);
+
+function formatTime(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleString();
+}
 
 async function send() {
   if (!to.value.trim() || !name.value.trim()) return;
@@ -25,7 +34,7 @@ async function send() {
 
 async function loadGreetings() {
   try {
-    greetings.value = await invoke<string[]>("cmd_get_greetings");
+    greetings.value = await invoke<ReceivedGreeting[]>("cmd_get_greetings");
   } catch (e) {
     emit("error", String(e));
   }
@@ -61,7 +70,10 @@ onMounted(loadGreetings);
         <button class="refresh" @click="loadGreetings" title="Refresh">↻</button>
       </div>
       <ul v-if="greetings.length" class="list">
-        <li v-for="(g, i) in greetings" :key="i" class="item">👋 {{ g }}</li>
+        <li v-for="(g, i) in greetings" :key="i" class="item">
+          <span class="greeting-name">👋 {{ g.name }}</span>
+          <span class="greeting-time">{{ formatTime(g.sent_at) }}</span>
+        </li>
       </ul>
       <p v-else class="empty">No greetings received yet.</p>
     </section>
@@ -145,6 +157,9 @@ h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
 }
 
 .item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.6rem 0.75rem;
   background: #fff;
   border: 1px solid #e4e4e7;
@@ -154,6 +169,13 @@ h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
 
 @media (prefers-color-scheme: dark) {
   .item { background: #27272a; border-color: #3f3f46; }
+}
+
+.greeting-time {
+  font-size: 0.78rem;
+  color: #a1a1aa;
+  white-space: nowrap;
+  margin-left: 0.75rem;
 }
 
 .empty { color: #a1a1aa; font-size: 0.9rem; }

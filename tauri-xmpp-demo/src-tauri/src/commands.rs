@@ -2,9 +2,10 @@ use tauri::{AppHandle, State};
 
 use crate::{
     appstate::AppState,
-    demo_xmpp::MyMessage,
+    demo_xmpp::{MyMessage, ReceivedGreeting},
     xmpp::{get_jid, set_jid, set_password, Jid, XmppError},
 };
+
 
 #[tauri::command]
 pub fn cmd_get_my_jid() -> Option<String> {
@@ -47,7 +48,7 @@ pub fn cmd_send_greet(
 }
 
 #[tauri::command]
-pub fn cmd_get_greetings(state: State<'_, AppState>) -> Vec<String> {
+pub fn cmd_get_greetings(state: State<'_, AppState>) -> Vec<ReceivedGreeting> {
     state
         .mystate
         .lock()

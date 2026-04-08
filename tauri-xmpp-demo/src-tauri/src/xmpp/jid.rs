@@ -15,6 +15,12 @@ impl Jid {
     }
 }
 
+impl From<BareJid> for Jid {
+    fn from(jid: BareJid) -> Self {
+        Jid(jid)
+    }
+}
+
 impl std::fmt::Display for Jid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)

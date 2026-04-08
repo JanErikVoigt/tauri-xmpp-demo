@@ -10,11 +10,11 @@ use crate::xmpp::{
     error::XmppError,
     events,
     secrets::{get_jid, get_password},
-    HasXmppSender, Jid, MessageTx, OutgoingMessage, XmppStateAccess,
+    HasXmppSender, IncomingMessage, Jid, MessageTx, OutgoingMessage, XmppStateAccess,
 };
 
 pub struct XMPPMessager<A, M, S> {
-    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
+    message_handler: fn(IncomingMessage<M>, &mut MutexGuard<'_, S>),
     tx: Option<mpsc::Sender<OutgoingMessage>>,
     join_handle: Option<tauri::async_runtime::JoinHandle<()>>,
     _phantom: PhantomData<(A, S)>,
@@ -26,7 +26,7 @@ where
     M: DeserializeOwned + Send + 'static,
     S: Send + 'static,
 {
-    pub fn new(message_handler: fn(M, &mut MutexGuard<'_, S>, i64)) -> Self {
+    pub fn new(message_handler: fn(IncomingMessage<M>, &mut MutexGuard<'_, S>)) -> Self {
         Self {
             message_handler,
             tx: None,
@@ -93,7 +93,7 @@ async fn run_xmpp_task<A, M, S>(
     app: AppHandle,
     me: Jid,
     password: secrecy::SecretString,
-    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
+    message_handler: fn(IncomingMessage<M>, &mut MutexGuard<'_, S>),
 ) where
     A: HasXmppSender + XmppStateAccess<S> + Send + Sync + 'static,
     M: DeserializeOwned + Send + 'static,
@@ -208,7 +208,7 @@ fn sent_timestamp(time_info: &StanzaTimeInfo) -> i64 {
 fn process_messages<A, M, S>(
     events: &[Event],
     app: &AppHandle,
-    message_handler: fn(M, &mut MutexGuard<'_, S>, i64),
+    message_handler: fn(IncomingMessage<M>, &mut MutexGuard<'_, S>),
 ) where
     A: XmppStateAccess<S> + Send + Sync + 'static,
     M: DeserializeOwned,
@@ -218,9 +218,16 @@ fn process_messages<A, M, S>(
         let state = app.state::<A>();
         let mut s = state.xmpp_state();
         for event in events {
-            if let Event::ChatMessage(_id, _from, body, time_info) = event {
-                if let Ok(msg) = serde_json::from_str::<M>(body) {
-                    message_handler(msg, &mut s, sent_timestamp(time_info));
+            if let Event::ChatMessage(_id, from, body, time_info) = event {
+                if let Ok(message) = serde_json::from_str::<M>(body) {
+                    message_handler(
+                        IncomingMessage {
+                            sent_at: sent_timestamp(time_info),
+                            from: from.clone().into(),
+                            message,
+                        },
+                        &mut s,
+                    );
                     received += 1;
                 }
             }

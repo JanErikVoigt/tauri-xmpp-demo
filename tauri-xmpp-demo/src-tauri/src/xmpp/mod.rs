@@ -1,6 +1,17 @@
 pub mod error;
 pub use error::XmppError;
 
+/// Wrapper passed to every message handler containing routing metadata alongside
+/// the application-level message.
+pub struct IncomingMessage<M> {
+    /// Original send time: first XEP-0203 delay stamp if present, otherwise receive time.
+    pub sent_at: i64,
+    /// Bare JID of the sender.
+    pub from: Jid,
+    /// Deserialized application message.
+    pub message: M,
+}
+
 /// Tauri event names emitted by the XMPP layer to the frontend.
 pub mod events {
     /// One or more new messages were received and stored. No payload.

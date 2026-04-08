@@ -7,16 +7,19 @@
 use serde::{Deserialize, Serialize};
 use std::sync::MutexGuard;
 
+use crate::xmpp::IncomingMessage;
+
 /// The only message type in this demo.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MyMessage {
     Greet(String),
 }
 
-/// A received greeting with its original sent time (Unix seconds, from XEP-0203 delay or receive time).
+/// A received greeting stored in app state.
 #[derive(Debug, Clone, Serialize)]
 pub struct ReceivedGreeting {
     pub name: String,
+    pub from: String,
     pub sent_at: i64,
 }
 
@@ -27,20 +30,18 @@ pub struct MyState {
 }
 
 /// Called by the XMPP task whenever a message arrives.
-///
-/// `sent_at` is a Unix timestamp (seconds) representing when the message was
-/// originally sent, derived from the XEP-0203 delay element if present.
 pub fn handle_incoming_message(
-    message: MyMessage,
+    incoming: IncomingMessage<MyMessage>,
     state: &mut MutexGuard<'_, MyState>,
-    sent_at: i64,
 ) {
-    match message {
+    match incoming.message {
         MyMessage::Greet(name) => {
-            eprintln!("[demo] greeted by {name} (sent at {sent_at})");
-            state
-                .received_greetings
-                .push(ReceivedGreeting { name, sent_at });
+            eprintln!("[demo] greeted by {name} from {} (sent at {})", incoming.from, incoming.sent_at);
+            state.received_greetings.push(ReceivedGreeting {
+                name,
+                from: incoming.from.to_string(),
+                sent_at: incoming.sent_at,
+            });
         }
     }
 }

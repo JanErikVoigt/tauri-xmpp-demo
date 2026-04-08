@@ -12,6 +12,7 @@ interface Contact {
 
 interface ReceivedGreeting {
   name: string;
+  from: string;
   sent_at: number; // Unix seconds
 }
 
@@ -107,7 +108,10 @@ onUnmounted(() => {
       </div>
       <ul v-if="greetings.length" class="list">
         <li v-for="(g, i) in greetings" :key="i" class="item">
-          <span class="greeting-name">👋 {{ g.name }}</span>
+          <div class="greeting-body">
+            <span class="greeting-name">👋 {{ g.name }}</span>
+            <span class="greeting-from">{{ g.from }}</span>
+          </div>
           <span class="greeting-time">{{ formatTime(g.sent_at) }}</span>
         </li>
       </ul>
@@ -213,11 +217,23 @@ h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
   .item { background: #27272a; border-color: #3f3f46; }
 }
 
+.greeting-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.greeting-from {
+  font-size: 0.78rem;
+  color: #a1a1aa;
+}
+
 .greeting-time {
   font-size: 0.78rem;
   color: #a1a1aa;
   white-space: nowrap;
   margin-left: 0.75rem;
+  flex-shrink: 0;
 }
 
 .empty { color: #a1a1aa; font-size: 0.9rem; }

@@ -7,8 +7,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::MutexGuard;
 
-use crate::xmpp::XmppError;
-
 /// The only message type in this demo.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MyMessage {

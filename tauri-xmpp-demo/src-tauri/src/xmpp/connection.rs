@@ -104,8 +104,10 @@ async fn run_xmpp_task<A, M, S>(
         .build();
     drop(password); // zero memory as soon as the builder has copied it
 
-    // Wait until the connection comes online.
-    let mut post_online: Vec<Event> = Vec::new();
+    // Wait until the connection comes online, collecting all non-Online events along
+    // the way. Offline messages can arrive in any batch — before, alongside, or after
+    // the Online event — so we must not drop anything.
+    let mut queued: Vec<Event> = Vec::new();
     'wait: loop {
         eprintln!("[xmpp] waiting for Online...");
         match tokio::time::timeout(
@@ -119,8 +121,8 @@ async fn run_xmpp_task<A, M, S>(
                 for event in events {
                     if let Event::Online = event {
                         got_online = true;
-                    } else if got_online {
-                        post_online.push(event);
+                    } else {
+                        queued.push(event);
                     }
                 }
                 if got_online {
@@ -139,9 +141,9 @@ async fn run_xmpp_task<A, M, S>(
     let (tx, mut rx) = mpsc::channel::<OutgoingMessage>(100);
     app.state::<A>().set_tx(tx);
 
-    // Handle any events that arrived in the same batch as Online.
-    if !post_online.is_empty() {
-        process_events::<A, M, S>(&post_online, &app, message_handler);
+    // Process all events collected during the online handshake (offline message backlog).
+    if !queued.is_empty() {
+        process_events::<A, M, S>(&queued, &app, message_handler);
     }
 
     // Main loop: interleave incoming events with outgoing sends.

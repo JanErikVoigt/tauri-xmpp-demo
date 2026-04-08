@@ -46,7 +46,3 @@ pub fn handle_incoming_message(
         }
     }
 }
-
-pub fn error_callback(err: &XmppError) {
-    eprintln!("{:?}", err);
-}

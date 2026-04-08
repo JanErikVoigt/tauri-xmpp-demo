@@ -6,12 +6,10 @@ use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc;
 use xmpp::{message::send::MessageSettings, ClientBuilder, Event};
 
-use crate::{
-    error::TauriXMPPError,
-    xmpp::{
-        secrets::{get_jid, get_password},
-        HasXmppSender, Jid, MessageTx, OutgoingMessage, XmppStateAccess,
-    },
+use crate::xmpp::{
+    error::XmppError,
+    secrets::{get_jid, get_password},
+    HasXmppSender, Jid, MessageTx, OutgoingMessage, XmppStateAccess,
 };
 
 pub struct XMPPMessager<A, M, S> {
@@ -73,19 +71,19 @@ where
     }
 
     /// Serialize and queue a message for delivery. Non-blocking (channel capacity 100).
-    pub fn send(&self, msg: &M, recipients: Vec<Jid>) -> Result<(), TauriXMPPError>
+    pub fn send(&self, msg: &M, recipients: Vec<Jid>) -> Result<(), XmppError>
     where
         M: Serialize,
     {
-        let tx = self.tx.as_ref().ok_or(TauriXMPPError::NotConnected)?;
-        let body = serde_json::to_string(msg).map_err(|_| TauriXMPPError::Serialize)?;
+        let tx = self.tx.as_ref().ok_or(XmppError::NotConnected)?;
+        let body = serde_json::to_string(msg).map_err(|_| XmppError::Serialize)?;
         let out = OutgoingMessage {
             recipients: recipients.into_iter().map(|j| j.bare_jid().clone()).collect(),
             body,
         };
         tx.try_send(out).map_err(|e| match e {
-            mpsc::error::TrySendError::Full(_) => TauriXMPPError::ChannelFull,
-            mpsc::error::TrySendError::Closed(_) => TauriXMPPError::ChannelClosed,
+            mpsc::error::TrySendError::Full(_) => XmppError::ChannelFull,
+            mpsc::error::TrySendError::Closed(_) => XmppError::ChannelClosed,
         })
     }
 }

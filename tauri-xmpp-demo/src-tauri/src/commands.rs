@@ -3,8 +3,7 @@ use tauri::{AppHandle, State};
 use crate::{
     appstate::AppState,
     demo_xmpp::MyMessage,
-    error::TauriXMPPError,
-    xmpp::{get_jid, set_jid, set_password, Jid},
+    xmpp::{get_jid, set_jid, set_password, Jid, XmppError},
 };
 
 #[tauri::command]
@@ -17,7 +16,7 @@ pub fn cmd_set_jid(
     jid: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<(), TauriXMPPError> {
+) -> Result<(), XmppError> {
     set_jid(&jid)?;
     state.messager.lock().unwrap().restart(&app);
     Ok(())
@@ -28,7 +27,7 @@ pub fn cmd_set_password(
     password: String,
     app: AppHandle,
     state: State<'_, AppState>,
-) -> Result<(), TauriXMPPError> {
+) -> Result<(), XmppError> {
     set_password(&password)?;
     state.messager.lock().unwrap().restart(&app);
     Ok(())
@@ -39,7 +38,7 @@ pub fn cmd_send_greet(
     to: Jid,
     name: String,
     state: State<'_, AppState>,
-) -> Result<(), TauriXMPPError> {
+) -> Result<(), XmppError> {
     state
         .messager
         .lock()

@@ -1,3 +1,6 @@
+pub mod error;
+pub use error::XmppError;
+
 mod jid;
 pub use jid::Jid;
 

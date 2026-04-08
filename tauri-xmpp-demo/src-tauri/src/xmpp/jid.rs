@@ -1,4 +1,4 @@
-use crate::error::TauriXMPPError;
+use crate::xmpp::error::XmppError;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use xmpp::jid::BareJid;
 
@@ -6,38 +6,30 @@ use xmpp::jid::BareJid;
 pub struct Jid(BareJid);
 
 impl Jid {
-    pub fn new(from: &str) -> Result<Self, TauriXMPPError> {
-        Ok(Jid(
-            BareJid::new(&from).map_err(|e| TauriXMPPError::JidError(e))?
-        ))
+    pub fn new(from: &str) -> Result<Self, XmppError> {
+        BareJid::new(from).map(Jid).map_err(XmppError::InvalidJid)
     }
 
     pub fn bare_jid(&self) -> &BareJid {
-        return &self.0;
+        &self.0
     }
 }
 
-impl ToString for Jid {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for Jid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
 impl Serialize for Jid {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.bare_jid().as_str())
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.bare_jid().as_str())
     }
 }
 
 impl<'de> Deserialize<'de> for Jid {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        BareJid::new(&s).map(Jid).map_err(|e| D::Error::custom(e))
+        BareJid::new(&s).map(Jid).map_err(D::Error::custom)
     }
 }

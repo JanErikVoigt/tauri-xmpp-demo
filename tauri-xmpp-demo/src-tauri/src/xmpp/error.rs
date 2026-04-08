@@ -1,13 +1,13 @@
 #[derive(Debug, thiserror::Error)]
-pub enum TauriXMPPError {
+pub enum XmppError {
     #[error("invalid JID: {0:?}")]
-    JidError(xmpp::jid::Error),
+    InvalidJid(xmpp::jid::Error),
 
     #[error("failed to serialize message")]
     Serialize,
 
     #[error("keyring error: {0}")]
-    KeyringError(String),
+    Keyring(String),
 
     #[error("not connected — credentials may not be set yet")]
     NotConnected,
@@ -19,7 +19,8 @@ pub enum TauriXMPPError {
     ChannelClosed,
 }
 
-impl serde::Serialize for TauriXMPPError {
+/// Required for Tauri commands to return this error across the IPC bridge.
+impl serde::Serialize for XmppError {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.to_string())
     }

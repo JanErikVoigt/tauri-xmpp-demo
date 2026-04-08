@@ -8,7 +8,6 @@ use xmpp::XMPPMessager;
 mod appstate;
 mod commands;
 mod demo_xmpp;
-mod error;
 mod secrets;
 mod xmpp;
 

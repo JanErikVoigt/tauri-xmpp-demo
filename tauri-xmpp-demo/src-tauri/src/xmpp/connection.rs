@@ -205,6 +205,9 @@ fn sent_timestamp(time_info: &StanzaTimeInfo) -> i64 {
 
 /// Process `ChatMessage` events from a batch, mutate state, then emit `xmpp:message`
 /// once if any messages were handled. The state lock is released before emitting.
+///
+/// Emits `xmpp:error` for messages that arrive but fail JSON parsing so the frontend
+/// can surface unexpected body content during development.
 fn process_messages<A, M, S>(
     events: &[Event],
     app: &AppHandle,
@@ -214,26 +217,39 @@ fn process_messages<A, M, S>(
     M: DeserializeOwned,
 {
     let mut received = 0usize;
+    let mut parse_errors: Vec<String> = Vec::new();
+
     {
         let state = app.state::<A>();
         let mut s = state.xmpp_state();
         for event in events {
             if let Event::ChatMessage(_id, from, body, time_info) = event {
-                if let Ok(message) = serde_json::from_str::<M>(body) {
-                    message_handler(
-                        IncomingMessage {
-                            sent_at: sent_timestamp(time_info),
-                            from: from.clone().into(),
-                            message,
-                        },
-                        &mut s,
-                    );
-                    received += 1;
+                eprintln!("[xmpp] ChatMessage from {from}: {body:?}");
+                match serde_json::from_str::<M>(body) {
+                    Ok(message) => {
+                        message_handler(
+                            IncomingMessage {
+                                sent_at: sent_timestamp(time_info),
+                                from: from.clone().into(),
+                                message,
+                            },
+                            &mut s,
+                        );
+                        received += 1;
+                    }
+                    Err(e) => {
+                        let reason = format!("unrecognised message from {from}: {e} (body: {body:?})");
+                        eprintln!("[xmpp] {reason}");
+                        parse_errors.push(reason);
+                    }
                 }
             }
         }
     } // MutexGuard dropped here before emitting
 
+    for reason in parse_errors {
+        app.emit(events::ERROR, reason).ok();
+    }
     if received > 0 {
         app.emit(events::MESSAGE, ()).ok();
     }

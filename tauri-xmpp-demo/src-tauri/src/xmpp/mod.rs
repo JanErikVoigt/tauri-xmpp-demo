@@ -20,6 +20,8 @@ pub mod events {
     pub const ONLINE: &str = "xmpp:online";
     /// The XMPP connection went offline. Payload: error reason (`String`), empty if clean.
     pub const OFFLINE: &str = "xmpp:offline";
+    /// A non-fatal error occurred (e.g. unrecognised message body). Payload: description (`String`).
+    pub const ERROR: &str = "xmpp:error";
 }
 
 mod jid;

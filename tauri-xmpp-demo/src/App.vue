@@ -19,6 +19,7 @@ const connectionStatus = ref<ConnectionStatus>(null);
 
 let unlistenOnline: UnlistenFn | null = null;
 let unlistenOffline: UnlistenFn | null = null;
+let unlistenError: UnlistenFn | null = null;
 
 onMounted(async () => {
   unlistenOnline = await listen<void>("xmpp:online", () => {
@@ -34,11 +35,16 @@ onMounted(async () => {
     const reason = event.payload?.trim();
     showError(reason ? `Disconnected: ${reason}` : "Disconnected");
   });
+
+  unlistenError = await listen<string>("xmpp:error", (event) => {
+    showError(event.payload ?? "Unknown XMPP error");
+  });
 });
 
 onUnmounted(() => {
   unlistenOnline?.();
   unlistenOffline?.();
+  unlistenError?.();
 });
 </script>
 

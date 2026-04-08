@@ -4626,6 +4626,22 @@ dependencies = [
 name = "tauri-xmpp-demo"
 version = "0.1.0"
 dependencies = [
+ "rustls",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tauri_xmpp",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
+name = "tauri_xmpp"
+version = "0.1.0"
+source = "git+https://github.com/JanErikVoigt/tauri-xmpp.git#9af69563014cc1b6ceaa7542edfdee65283c5f5d"
+dependencies = [
  "android-native-keyring-store",
  "chrono",
  "keyring",
@@ -4635,26 +4651,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tauri",
- "tauri-build",
  "tauri-plugin-opener",
- "tauri_xmpp",
- "thiserror 2.0.18",
- "tokio",
- "xmpp",
-]
-
-[[package]]
-name = "tauri_xmpp"
-version = "0.1.0"
-source = "git+https://github.com/JanErikVoigt/tauri-xmpp.git#0e0b7c98ed1a77177db59e770e3acf103c969183"
-dependencies = [
- "android-native-keyring-store",
- "keyring",
- "keyring-core",
- "secrecy",
- "serde",
- "serde_json",
- "tauri",
  "thiserror 2.0.18",
  "tokio",
  "xmpp",
@@ -6480,8 +6477,3 @@ dependencies = [
  "syn 2.0.117",
  "winnow 0.7.15",
 ]
-
-[[patch.unused]]
-name = "native-tls"
-version = "0.2.17"
-source = "git+https://github.com/JanErikVoigt/rust-native-tls.git#a352cb30671a89223b7a583e0bcb8f338376cf34"

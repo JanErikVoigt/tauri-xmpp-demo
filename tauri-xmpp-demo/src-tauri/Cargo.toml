@@ -18,37 +18,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-
-# xmpp messaging core:
-#tauri_xmpp = { path = "../submodules/tauri-xmpp" }
-tauri_xmpp = { git = "https://github.com/JanErikVoigt/tauri-xmpp.git" }
-
-
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 
-xmpp = { git = "https://github.com/JanErikVoigt/xmpp-rs.git", branch = "claudes-fixes", features = ["webpki-roots"] }
+# xmpp messaging core:
+tauri_xmpp = { git = "https://github.com/JanErikVoigt/tauri-xmpp.git" }
 
 thiserror = "2.0.18"
-chrono = "0.4"
 
 # (De)Serialization
 tokio = { version = "1", features = ["time", "sync"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
-
-
-# Secrets:
-secrecy = "0.10.3"
-[target.'cfg(not(target_os = "android"))'.dependencies]
-keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
-[target.'cfg(target_os = "android")'.dependencies]
-android-native-keyring-store = "0.6.0"
-keyring-core = "0.7"
-
-
-
-
-[patch.crates-io]
-native-tls = { git = "https://github.com/JanErikVoigt/rust-native-tls.git" }

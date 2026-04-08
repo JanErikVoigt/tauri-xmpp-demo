@@ -22,6 +22,8 @@ pub mod events {
     pub const OFFLINE: &str = "xmpp:offline";
     /// A non-fatal error occurred (e.g. unrecognised message body). Payload: description (`String`).
     pub const ERROR: &str = "xmpp:error";
+    /// Credentials (JID or password) are not yet set. No payload.
+    pub const NOT_CONFIGURED: &str = "xmpp:not-configured";
 }
 
 mod jid;

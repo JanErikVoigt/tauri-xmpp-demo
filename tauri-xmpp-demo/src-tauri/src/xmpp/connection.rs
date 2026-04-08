@@ -36,7 +36,7 @@ where
     }
 
     /// Abort any running connection and start a fresh one.
-    /// Silently returns if credentials are not yet configured.
+    /// Emits `xmpp:not-configured` if credentials are missing.
     pub fn restart(&mut self, app: &AppHandle) {
         if let Some(h) = self.join_handle.take() {
             h.abort();
@@ -45,15 +45,15 @@ where
 
         let me = match get_jid() {
             Ok(j) => j,
-            Err(e) => {
-                eprintln!("[xmpp] credentials not ready: {e}");
+            Err(_) => {
+                app.emit(events::NOT_CONFIGURED, ()).ok();
                 return;
             }
         };
         let password = match get_password() {
             Ok(p) => p,
-            Err(e) => {
-                eprintln!("[xmpp] credentials not ready: {e}");
+            Err(_) => {
+                app.emit(events::NOT_CONFIGURED, ()).ok();
                 return;
             }
         };

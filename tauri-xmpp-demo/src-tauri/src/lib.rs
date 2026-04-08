@@ -18,11 +18,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            commands::cmd_get_my_jid,
-            commands::cmd_set_jid,
-            commands::cmd_set_password,
-            commands::cmd_send_greet,
-            commands::cmd_get_greetings,
+            commands::get_my_jid,
+            commands::set_jid,
+            commands::set_password,
+            commands::send_greet,
+            commands::get_greetings,
             contacts::get_contacts,
             contacts::add_contact,
             contacts::remove_contact,

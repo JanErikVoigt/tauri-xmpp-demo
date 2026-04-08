@@ -1,39 +1,34 @@
-use std::sync::Mutex;
-
-use tauri::{AppHandle, State};
-
 use crate::{
     appstate::AppState,
-    contacts::{Contact, ContactsState},
     demo_xmpp::{MyMessage, ReceivedGreeting},
-    xmpp::{get_jid, set_jid, set_password, Jid, XmppError},
+    xmpp,
+    xmpp::{Jid, XmppError},
 };
+use tauri::{AppHandle, State};
 
 // ── XMPP connection ───────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn cmd_get_my_jid() -> Option<String> {
-    get_jid().ok().map(|j| j.bare_jid().as_str().to_string())
+pub fn get_my_jid() -> Option<String> {
+    xmpp::get_jid()
+        .ok()
+        .map(|j| j.bare_jid().as_str().to_string())
 }
 
 #[tauri::command]
-pub fn cmd_set_jid(
-    jid: String,
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<(), XmppError> {
-    set_jid(&jid)?;
+pub fn set_jid(jid: String, app: AppHandle, state: State<'_, AppState>) -> Result<(), XmppError> {
+    xmpp::set_jid(&jid)?;
     state.messager.lock().unwrap().restart(&app);
     Ok(())
 }
 
 #[tauri::command]
-pub fn cmd_set_password(
+pub fn set_password(
     password: String,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), XmppError> {
-    set_password(&password)?;
+    xmpp::set_password(&password)?;
     state.messager.lock().unwrap().restart(&app);
     Ok(())
 }
@@ -41,7 +36,7 @@ pub fn cmd_set_password(
 // ── Greet ─────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn cmd_send_greet(to: Jid, name: String, state: State<'_, AppState>) -> Result<(), XmppError> {
+pub fn send_greet(to: Jid, name: String, state: State<'_, AppState>) -> Result<(), XmppError> {
     state
         .messager
         .lock()
@@ -50,7 +45,7 @@ pub fn cmd_send_greet(to: Jid, name: String, state: State<'_, AppState>) -> Resu
 }
 
 #[tauri::command]
-pub fn cmd_get_greetings(state: State<'_, AppState>) -> Vec<ReceivedGreeting> {
+pub fn get_greetings(state: State<'_, AppState>) -> Vec<ReceivedGreeting> {
     state
         .mystate
         .lock()

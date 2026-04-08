@@ -1,10 +1,10 @@
 use crate::{
     appstate::AppState,
     demo_xmpp::{MyMessage, ReceivedGreeting},
-    xmpp,
-    xmpp::{Jid, XmppError},
 };
 use tauri::{AppHandle, State};
+use tauri_xmpp::xmpp;
+use tauri_xmpp::xmpp::{Jid, XmppError};
 
 // ── XMPP connection ───────────────────────────────────────────────────────────
 

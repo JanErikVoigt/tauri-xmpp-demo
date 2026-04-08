@@ -6,8 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::sync::MutexGuard;
-
-use crate::xmpp::IncomingMessage;
+use tauri_xmpp::xmpp::IncomingMessage;
 
 /// The only message type in this demo.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,7 +35,10 @@ pub fn handle_incoming_message(
 ) {
     match incoming.message {
         MyMessage::Greet(name) => {
-            eprintln!("[demo] greeted by {name} from {} (sent at {})", incoming.from, incoming.sent_at);
+            eprintln!(
+                "[demo] greeted by {name} from {} (sent at {})",
+                incoming.from, incoming.sent_at
+            );
             state.received_greetings.push(ReceivedGreeting {
                 name,
                 from: incoming.from.to_string(),

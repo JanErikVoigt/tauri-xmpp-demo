@@ -1,11 +1,11 @@
 use std::sync::Mutex;
 
 use appstate::AppState;
-use contacts::ContactsState;
 use demo_xmpp::{handle_incoming_message, MyState};
 use tauri::Manager;
-use xmpp::XMPPMessager;
-
+use tauri_xmpp::contacts;
+use tauri_xmpp::contacts::ContactsState;
+use tauri_xmpp::xmpp::XMPPMessager;
 mod appstate;
 mod commands;
 mod demo_xmpp;

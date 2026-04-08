@@ -18,6 +18,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+
+# xmpp messaging core:
+#tauri_xmpp = { path = "../submodules/tauri-xmpp" }
+tauri_xmpp = { git = "https://github.com/JanErikVoigt/tauri-xmpp.git" }
+
+
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 
@@ -41,9 +47,6 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "sync-s
 android-native-keyring-store = "0.6.0"
 keyring-core = "0.7"
 
-# xmpp messaging core:
-#tauri_xmpp = { path = "../submodules/tauri-xmpp" }
-tauri_xmpp = { git = "https://github.com/JanErikVoigt/tauri-xmpp.git" }
 
 
 

@@ -1,9 +1,6 @@
+use crate::demo_xmpp::{MyMessage, MyState};
 use std::sync::{Mutex, MutexGuard};
-
-use crate::{
-    demo_xmpp::{MyMessage, MyState},
-    xmpp::{HasXmppSender, MessageTx, XMPPMessager, XmppStateAccess},
-};
+use tauri_xmpp::xmpp::{HasXmppSender, MessageTx, XMPPMessager, XmppStateAccess};
 
 pub struct AppState {
     pub mystate: Mutex<MyState>,

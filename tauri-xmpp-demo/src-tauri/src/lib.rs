@@ -8,7 +8,6 @@ use xmpp::XMPPMessager;
 
 mod appstate;
 mod commands;
-mod contacts;
 mod demo_xmpp;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

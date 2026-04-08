@@ -42,7 +42,8 @@ android-native-keyring-store = "0.6.0"
 keyring-core = "0.7"
 
 # xmpp messaging core:
-tauri_xmpp = { path = "../submodules/tauri-xmpp" }
+#tauri_xmpp = { path = "../submodules/tauri-xmpp" }
+tauri_xmpp = { git = "https://github.com/JanErikVoigt/tauri-xmpp.git" }
 
 
 

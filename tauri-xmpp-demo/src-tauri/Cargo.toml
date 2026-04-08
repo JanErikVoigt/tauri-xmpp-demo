@@ -41,5 +41,10 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "sync-s
 android-native-keyring-store = "0.6.0"
 keyring-core = "0.7"
 
+# xmpp messaging core:
+tauri_xmpp = { path = "../submodules/tauri-xmpp" }
+
+
+
 [patch.crates-io]
 native-tls = { git = "https://github.com/JanErikVoigt/rust-native-tls.git" }

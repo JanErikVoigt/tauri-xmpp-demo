@@ -4640,7 +4640,7 @@ dependencies = [
 [[package]]
 name = "tauri_xmpp"
 version = "0.1.0"
-source = "git+https://github.com/JanErikVoigt/tauri-xmpp.git#9af69563014cc1b6ceaa7542edfdee65283c5f5d"
+source = "git+https://github.com/JanErikVoigt/tauri-xmpp.git#13c911d7ca7ffedbe8a9a67ed37b550d6f714ab9"
 dependencies = [
  "android-native-keyring-store",
  "chrono",

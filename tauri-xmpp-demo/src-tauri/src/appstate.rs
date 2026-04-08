@@ -7,7 +7,7 @@ pub struct AppState {
     pub messager: Mutex<XMPPMessager<AppState, MyMessage, MyState>>,
 }
 
-impl HasXmppSender for AppState {
+impl HasXmppSender<MyMessage> for AppState {
     fn set_tx(&self, tx: MessageTx) {
         self.messager.lock().unwrap().set_tx(tx);
     }

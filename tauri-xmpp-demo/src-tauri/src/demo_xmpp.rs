@@ -6,13 +6,15 @@
 
 use serde::{Deserialize, Serialize};
 use std::sync::MutexGuard;
-use tauri_xmpp::xmpp::IncomingMessage;
+use tauri_xmpp::xmpp::{IncomingMessage, MessageTrait};
 
 /// The only message type in this demo.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MyMessage {
     Greet(String),
 }
+
+impl MessageTrait for MyMessage {}
 
 /// A received greeting stored in app state.
 #[derive(Debug, Clone, Serialize)]

@@ -41,11 +41,7 @@ pub fn cmd_set_password(
 // ── Greet ─────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn cmd_send_greet(
-    to: Jid,
-    name: String,
-    state: State<'_, AppState>,
-) -> Result<(), XmppError> {
+pub fn cmd_send_greet(to: Jid, name: String, state: State<'_, AppState>) -> Result<(), XmppError> {
     state
         .messager
         .lock()
@@ -61,27 +57,4 @@ pub fn cmd_get_greetings(state: State<'_, AppState>) -> Vec<ReceivedGreeting> {
         .unwrap_or_else(|e| e.into_inner())
         .received_greetings
         .clone()
-}
-
-// ── Contacts ──────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-pub fn cmd_get_contacts(contacts: State<'_, Mutex<ContactsState>>) -> Vec<Contact> {
-    contacts.lock().unwrap().contacts.clone()
-}
-
-#[tauri::command]
-pub fn cmd_add_contact(
-    jid: String,
-    display_name: String,
-    contacts: State<'_, Mutex<ContactsState>>,
-) -> Result<(), XmppError> {
-    Jid::new(&jid)?; // validate before storing
-    contacts.lock().unwrap().upsert(jid, display_name);
-    Ok(())
-}
-
-#[tauri::command]
-pub fn cmd_remove_contact(jid: String, contacts: State<'_, Mutex<ContactsState>>) {
-    contacts.lock().unwrap().remove(&jid);
 }

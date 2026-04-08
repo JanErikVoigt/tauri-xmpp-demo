@@ -23,9 +23,9 @@ pub fn run() {
             commands::cmd_set_password,
             commands::cmd_send_greet,
             commands::cmd_get_greetings,
-            commands::cmd_get_contacts,
-            commands::cmd_add_contact,
-            commands::cmd_remove_contact,
+            contacts::get_contacts,
+            contacts::add_contact,
+            contacts::remove_contact,
         ])
         .setup(|app| {
             let contacts_path = app.path().app_data_dir()?.join("contacts.json");

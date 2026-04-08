@@ -1,5 +1,8 @@
+use crate::xmpp::{Jid, XmppError};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::Mutex;
+use tauri::{AppHandle, State};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Contact {
@@ -49,4 +52,27 @@ impl ContactsState {
             Err(e) => eprintln!("[contacts] failed to serialize: {e}"),
         }
     }
+}
+
+// ── Commands ──────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn get_contacts(contacts: State<'_, Mutex<ContactsState>>) -> Vec<Contact> {
+    contacts.lock().unwrap().contacts.clone()
+}
+
+#[tauri::command]
+pub fn add_contact(
+    jid: String,
+    display_name: String,
+    contacts: State<'_, Mutex<ContactsState>>,
+) -> Result<(), XmppError> {
+    Jid::new(&jid)?; // validate before storing
+    contacts.lock().unwrap().upsert(jid, display_name);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_contact(jid: String, contacts: State<'_, Mutex<ContactsState>>) {
+    contacts.lock().unwrap().remove(&jid);
 }

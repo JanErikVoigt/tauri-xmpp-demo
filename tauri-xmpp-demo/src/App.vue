@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import Contacts from "./views/Contacts.vue";
 import Greet from "./views/Greet.vue";
 import Settings from "./views/Settings.vue";
 import ErrorPopup from "./components/ErrorPopup.vue";
 
-type View = "greet" | "settings";
+type View = "contacts" | "greet" | "settings";
 const view = ref<View>("greet");
 
 const errorMsg = ref<string | null>(null);
@@ -16,6 +17,9 @@ function showError(msg: string) {
 <template>
   <div class="app">
     <nav class="tabs">
+      <button :class="{ active: view === 'contacts' }" @click="view = 'contacts'">
+        Contacts
+      </button>
       <button :class="{ active: view === 'greet' }" @click="view = 'greet'">
         Greet
       </button>
@@ -25,6 +29,7 @@ function showError(msg: string) {
     </nav>
 
     <main class="view">
+      <Contacts v-if="view === 'contacts'" @error="showError" />
       <Greet v-if="view === 'greet'" @error="showError" />
       <Settings v-if="view === 'settings'" @error="showError" />
     </main>

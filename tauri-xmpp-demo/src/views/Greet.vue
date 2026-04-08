@@ -4,11 +4,17 @@ import { invoke } from "@tauri-apps/api/core";
 
 const emit = defineEmits<{ error: [msg: string] }>();
 
+interface Contact {
+  jid: string;
+  display_name: string;
+}
+
 interface ReceivedGreeting {
   name: string;
   sent_at: number; // Unix seconds
 }
 
+const contacts = ref<Contact[]>([]);
 const to = ref("");
 const name = ref("");
 const sending = ref(false);
@@ -18,17 +24,15 @@ function formatTime(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString();
 }
 
-async function send() {
-  if (!to.value.trim() || !name.value.trim()) return;
-  sending.value = true;
+async function loadContacts() {
   try {
-    await invoke("cmd_send_greet", { to: to.value.trim(), name: name.value.trim() });
-    to.value = "";
-    name.value = "";
+    contacts.value = await invoke<Contact[]>("cmd_get_contacts");
+    // Reset selection if current target no longer exists
+    if (to.value && !contacts.value.some((c) => c.jid === to.value)) {
+      to.value = "";
+    }
   } catch (e) {
     emit("error", String(e));
-  } finally {
-    sending.value = false;
   }
 }
 
@@ -40,7 +44,23 @@ async function loadGreetings() {
   }
 }
 
-onMounted(loadGreetings);
+async function send() {
+  if (!to.value || !name.value.trim()) return;
+  sending.value = true;
+  try {
+    await invoke("cmd_send_greet", { to: to.value, name: name.value.trim() });
+    name.value = "";
+  } catch (e) {
+    emit("error", String(e));
+  } finally {
+    sending.value = false;
+  }
+}
+
+onMounted(async () => {
+  await loadContacts();
+  await loadGreetings();
+});
 </script>
 
 <template>
@@ -48,17 +68,24 @@ onMounted(loadGreetings);
     <section class="send-section">
       <h2>Send Greeting</h2>
       <form @submit.prevent="send" class="form">
-        <input
+        <select
           v-model="to"
-          placeholder="Recipient JID (user@example.com)"
-          :disabled="sending"
-        />
+          :disabled="sending || contacts.length === 0"
+          :class="{ placeholder: !to }"
+        >
+          <option value="" disabled>
+            {{ contacts.length === 0 ? "Add contacts first" : "Select recipient…" }}
+          </option>
+          <option v-for="c in contacts" :key="c.jid" :value="c.jid">
+            {{ c.display_name }} ({{ c.jid }})
+          </option>
+        </select>
         <input
           v-model="name"
           placeholder="Your name"
           :disabled="sending"
         />
-        <button type="submit" :disabled="sending || !to.trim() || !name.trim()">
+        <button type="submit" :disabled="sending || !to || !name.trim()">
           {{ sending ? "Sending…" : "Send" }}
         </button>
       </form>
@@ -96,6 +123,7 @@ h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
   gap: 0.5rem;
 }
 
+.form select,
 .form input {
   padding: 0.5rem 0.75rem;
   border: 1px solid #d4d4d8;
@@ -103,10 +131,15 @@ h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
   font-size: 0.9rem;
   background: #fff;
   color: inherit;
+  width: 100%;
 }
 
+.form select.placeholder { color: #a1a1aa; }
+
 @media (prefers-color-scheme: dark) {
+  .form select,
   .form input { background: #3f3f46; border-color: #52525b; }
+  .form select.placeholder { color: #71717a; }
 }
 
 .form button {

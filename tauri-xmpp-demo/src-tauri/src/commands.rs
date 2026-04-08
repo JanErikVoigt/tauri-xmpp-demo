@@ -1,11 +1,15 @@
+use std::sync::Mutex;
+
 use tauri::{AppHandle, State};
 
 use crate::{
     appstate::AppState,
+    contacts::{Contact, ContactsState},
     demo_xmpp::{MyMessage, ReceivedGreeting},
     xmpp::{get_jid, set_jid, set_password, Jid, XmppError},
 };
 
+// ── XMPP connection ───────────────────────────────────────────────────────────
 
 #[tauri::command]
 pub fn cmd_get_my_jid() -> Option<String> {
@@ -34,6 +38,8 @@ pub fn cmd_set_password(
     Ok(())
 }
 
+// ── Greet ─────────────────────────────────────────────────────────────────────
+
 #[tauri::command]
 pub fn cmd_send_greet(
     to: Jid,
@@ -55,4 +61,27 @@ pub fn cmd_get_greetings(state: State<'_, AppState>) -> Vec<ReceivedGreeting> {
         .unwrap_or_else(|e| e.into_inner())
         .received_greetings
         .clone()
+}
+
+// ── Contacts ──────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn cmd_get_contacts(contacts: State<'_, Mutex<ContactsState>>) -> Vec<Contact> {
+    contacts.lock().unwrap().contacts.clone()
+}
+
+#[tauri::command]
+pub fn cmd_add_contact(
+    jid: String,
+    display_name: String,
+    contacts: State<'_, Mutex<ContactsState>>,
+) -> Result<(), XmppError> {
+    Jid::new(&jid)?; // validate before storing
+    contacts.lock().unwrap().upsert(jid, display_name);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn cmd_remove_contact(jid: String, contacts: State<'_, Mutex<ContactsState>>) {
+    contacts.lock().unwrap().remove(&jid);
 }

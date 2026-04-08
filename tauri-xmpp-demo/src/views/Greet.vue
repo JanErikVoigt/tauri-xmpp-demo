@@ -1,0 +1,160 @@
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+
+const emit = defineEmits<{ error: [msg: string] }>();
+
+const to = ref("");
+const name = ref("");
+const sending = ref(false);
+const greetings = ref<string[]>([]);
+
+async function send() {
+  if (!to.value.trim() || !name.value.trim()) return;
+  sending.value = true;
+  try {
+    await invoke("cmd_send_greet", { to: to.value.trim(), name: name.value.trim() });
+    to.value = "";
+    name.value = "";
+  } catch (e) {
+    emit("error", String(e));
+  } finally {
+    sending.value = false;
+  }
+}
+
+async function loadGreetings() {
+  try {
+    greetings.value = await invoke<string[]>("cmd_get_greetings");
+  } catch (e) {
+    emit("error", String(e));
+  }
+}
+
+onMounted(loadGreetings);
+</script>
+
+<template>
+  <div class="page">
+    <section class="send-section">
+      <h2>Send Greeting</h2>
+      <form @submit.prevent="send" class="form">
+        <input
+          v-model="to"
+          placeholder="Recipient JID (user@example.com)"
+          :disabled="sending"
+        />
+        <input
+          v-model="name"
+          placeholder="Your name"
+          :disabled="sending"
+        />
+        <button type="submit" :disabled="sending || !to.trim() || !name.trim()">
+          {{ sending ? "Sending…" : "Send" }}
+        </button>
+      </form>
+    </section>
+
+    <section class="history-section">
+      <div class="history-header">
+        <h2>Received Greetings</h2>
+        <button class="refresh" @click="loadGreetings" title="Refresh">↻</button>
+      </div>
+      <ul v-if="greetings.length" class="list">
+        <li v-for="(g, i) in greetings" :key="i" class="item">👋 {{ g }}</li>
+      </ul>
+      <p v-else class="empty">No greetings received yet.</p>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.page {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form input { background: #3f3f46; border-color: #52525b; }
+}
+
+.form button {
+  align-self: flex-start;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: none;
+}
+
+.form button:disabled { opacity: 0.5; cursor: default; }
+.form button:not(:disabled):hover { background: #1d4ed8; }
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.refresh {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #71717a;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  box-shadow: none;
+  line-height: 1;
+}
+
+.refresh:hover { color: #2563eb; background: #eff6ff; }
+
+@media (prefers-color-scheme: dark) {
+  .refresh:hover { background: #1e3a5f; color: #60a5fa; }
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .item { background: #27272a; border-color: #3f3f46; }
+}
+
+.empty { color: #a1a1aa; font-size: 0.9rem; }
+</style>

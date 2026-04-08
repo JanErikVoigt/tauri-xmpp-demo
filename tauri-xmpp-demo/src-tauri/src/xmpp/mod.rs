@@ -1,26 +1,29 @@
 mod jid;
-use std::sync::MutexGuard;
-
 pub use jid::Jid;
-mod messager;
-pub use messager::spawn_xmpp_thread;
+
+pub mod connection;
+pub use connection::XMPPMessager;
 
 mod secrets;
 pub use secrets::{get_jid, set_jid, set_password};
 
-use crate::xmpp::send::{SendXMPPMessageRequest, XMPPMessager};
+use std::sync::MutexGuard;
 use tokio::sync::mpsc::Sender;
-pub mod send;
+use xmpp::jid::BareJid;
 
-pub type MessageTx = Sender<SendXMPPMessageRequest>;
+pub(crate) struct OutgoingMessage {
+    pub recipients: Vec<BareJid>,
+    pub body: String,
+}
 
-/// Implemented by the Tauri app state to allow the XMPP layer to register its outgoing channel.
-pub trait HasMessageSender<A, M, S>: Send + Sync + 'static {
+pub type MessageTx = Sender<OutgoingMessage>;
+
+/// Implemented by AppState to let the XMPP task register its outgoing channel.
+pub trait HasXmppSender: Send + Sync + 'static {
     fn set_tx(&self, tx: MessageTx);
 }
 
-pub trait StateModifiedByXMPP<S> {
-    // fn get_state(&self) -> S;
-    // fn set_state(&mut self, new_state: S);
-    fn xmpp_state(&self) -> MutexGuard<S>;
+/// Implemented by AppState to give the XMPP task mutable access to the inner state.
+pub trait XmppStateAccess<S>: Send + Sync + 'static {
+    fn xmpp_state(&self) -> MutexGuard<'_, S>;
 }

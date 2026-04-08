@@ -1,22 +1,22 @@
 #[derive(Debug, thiserror::Error)]
 pub enum TauriXMPPError {
-    #[error("Failed creating jid: {0:?}")]
+    #[error("invalid JID: {0:?}")]
     JidError(xmpp::jid::Error),
 
-    #[error("failed serializing")]
-    SerdeSerialize,
+    #[error("failed to serialize message")]
+    Serialize,
 
     #[error("keyring error: {0}")]
     KeyringError(String),
 
-    #[error("not connected — call spawn_xmpp_thread first")]
+    #[error("not connected — credentials may not be set yet")]
     NotConnected,
+
+    #[error("XMPP send channel is full")]
+    ChannelFull,
 
     #[error("XMPP send channel closed")]
     ChannelClosed,
-
-    #[error("no idea what this does")]
-    NoState,
 }
 
 impl serde::Serialize for TauriXMPPError {

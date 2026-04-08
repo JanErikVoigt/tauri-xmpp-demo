@@ -1,12 +1,9 @@
 use std::sync::Mutex;
 
-use crate::{
-    appstate::AppState,
-    demo_xmpp::{handle_incoming_message, MyState},
-    xmpp::{send::XMPPMessager, spawn_xmpp_thread},
-};
-
-pub use tauri::Manager;
+use appstate::AppState;
+use demo_xmpp::{handle_incoming_message, MyState};
+use tauri::Manager;
+use xmpp::XMPPMessager;
 
 mod appstate;
 mod commands;
@@ -15,41 +12,28 @@ mod error;
 mod secrets;
 mod xmpp;
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub async fn run() {
+pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        //TODO .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
+            commands::cmd_get_my_jid,
             commands::cmd_set_jid,
             commands::cmd_set_password,
             commands::cmd_send_greet,
-            commands::cmd_befriend,
-            commands::cmd_unfriend,
-            commands::cmd_get_friends,
-            commands::cmd_get_history,
-            commands::cmd_get_my_jid,
+            commands::cmd_get_greetings,
         ])
         .setup(|app| {
-            //TODO fail silently?
-            let messager = match spawn_xmpp_thread(app.handle().clone(), handle_incoming_message) {
-                Ok(m) => Some(m),
-                Err(e) => None,
-            };
-
             app.manage(AppState {
                 mystate: Mutex::new(MyState::default()),
-                messager: Mutex::new(messager),
+                messager: Mutex::new(XMPPMessager::new(handle_incoming_message)),
             });
-            // Try to start immediately; silently skips if credentials aren't set yet.
-            restart_xmpp(app.handle(), &app.state::<AppState>());
+            // Try to connect immediately; silently skips if credentials aren't set yet.
+            app.state::<AppState>()
+                .messager
+                .lock()
+                .unwrap()
+                .restart(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())
